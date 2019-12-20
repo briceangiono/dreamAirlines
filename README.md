@@ -1,13 +1,13 @@
 # DreamAirlines
 Spark training with CSV files from dreamAirlines
 
-## Prerequisite:  
+## Prerequisite
 Before using the project be sure to have Spark installed and ready to be used. This link can help you to install spark on a ubuntu environment: 
 https://computingforgeeks.com/how-to-install-apache-spark-on-ubuntu-debian/
 
 You can find plenty of links for installing it on other OS.
 
-## Todo List
+## Setup
 
 1. Clone the repository :
  
