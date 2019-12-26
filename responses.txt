@@ -1,0 +1,14 @@
+#List of Imports
+
+import org.apache.spark.sql.functions._
+
+
+#List of responses
+
+1/	dfDimHotelBooking.count
+2/	dfDimHotelBooking.select(col("Dsc_Employee")).distinct.sort(asc("Dsc_Employee")).show
+3/	dfDimCustomer.filter(col("Dsc_Customer").startsWith("A")).show(25)
+4/	dfDimTravelBooking.filter(!(col("Dsc_TravelDestiny").endsWith("a"))).distinct.show
+5/	
+
+
