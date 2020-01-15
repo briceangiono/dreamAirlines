@@ -115,12 +115,20 @@ where d.MMYYYY = '072017'
 order by r.AMT_Rental desc;
 
 -- 21
-select c.DSC_Car, r.AMT_CarInsurance from [dw].[DimCar] c
+select c.DSC_Car, sum(r.AMT_CarInsurance) AS AMT_Insurance from [dw].[DimCar] c
 join [dw].[FactCarRenting] r
 on c.PK_Car = r.FK_Car
 join [dw].[DimDate] d
 on r.FK_Date = d.PK_Date
-where d.Year = '2016' and r.AMT_CarInsurance < 8000
+where d.Year = '2016' and AMT_Insurance < 8000
+order by r.AMT_CarInsurance desc, c.DSC_Car asc;
+
+-- If we don't use the DimDate table  
+select c.DSC_Car, sum(r.AMT_CarInsurance) AS AMT_Insurance from [dw].[DimCar] c
+join [dw].[FactCarRenting] r
+on c.PK_Car = r.FK_Car
+where r.FK_Date like '2016%' and AMT_Insurance < 8000
+group by c.DSC_Car
 order by r.AMT_CarInsurance desc, c.DSC_Car asc;
 
 -- 22
@@ -163,7 +171,7 @@ from TopEmployee where TopRank <= 3 or BottomRank <= 3
 order by NbTravelBookings desc;
 
 -- 25
--- What is the Screenshot
+-- What is in the Screenshot
 select e.DSC_Employee, round(sum(i.AMT_Travel_Insurance), 2) as Amt_Insurance from [dw].[DimEmployee] e
 join [dw].[FactInsurance] i
 on e.PK_Employee = i.FK_Employee

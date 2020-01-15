@@ -89,4 +89,93 @@ dfDimEmployee.select(min("Amt_Salary").as("Lowest_Salary")).show
 // or
 dfDimEmployee.agg(min("Amt_Salary").as("Lowest_Salary")).show
 
-//18.
+// 18.
+dfFactHotelBooking.
+	join(dfDimHotelBooking, "PK_HotelBooking").
+	where(upper(col("DSC_HotelService")).contains("BREAKFAST")).
+	orderBy("AMT_Accomodation").
+	limit(1).
+	select("DSC_Hotel", "DSC_HotelService", "AMT_Accomodation").show
+
+// 19.
+import org.apache.spark.sql.expressions.window
+
+val windowSpec = Window.partitionBy("DSC_RentalCompany")
+
+dfDimCar.
+	join(dfFactCarRenting, col("PK_Car") === col("FK_Car")).
+	select("DSC_RentalCompany", "DSC_Car", "AMT_DailyRate").withColumn("Max_AMT_DailyRate", max(col("AMT_DailyRate")).over(windowSpec)).
+	where(col("AMT_DailyRate") === col("Max_AMT_DailyRate")).
+	drop("Max_AMT_DailyRate").
+	distinct.show
+
+// 20.
+dfDimCar.
+	join(dfFactCarRenting, col("PK_car") === col("FK_Car")).
+	join(dfDimDate, col("FK_Date") === col("PK_Date")).
+	filter(col("MMYYYY") === 72017).
+	orderBy(col("AMT_Rental").desc).
+	limit(1).
+	select("DSC_Car", "AMT_Rental").show
+
+// 21.
+dfDimCar
+	.join(dfFactCarRenting, col("PK_Car") === col("FK_Car"))
+	.where(col("FK_Date").startsWith("2016"))
+	.groupBy("DSC_Car")
+		.agg(sum("AMT_CarInsurance").as("AMT_Insurance"))
+	.filter(col("AMT_Insurance").lt(8000))
+	.select(col("DSC_Car"), col("AMT_Insurance"))
+	.orderBy(col("AMT_Insurance").desc, col("DSC_Car")).show
+
+// 22.
+dfDimTravelBooking
+	.groupBy("DSC_Employee")
+		.agg(countDistinct("PK_TravelBooking").alias("NbTravelBookings"))
+	.orderBy(col("NbTravelBookings").desc)
+	.limit(5).show
+
+// 23.
+import org.apache.spark.sql.expressions.Window
+
+val windowSpec = Window.partitionBy("DSC_TravelAgency").orderBy(count("PK_HotelBooking").desc)
+
+dfDimHotelBooking
+	.groupBy("DSC_TravelAgency", "DSC_Employee")
+		.agg(
+			count("PK_HotelBooking").as("NbBookings"), 
+			rank().over(windowSpec).as("employeeRank"))
+	.orderBy(col("DSC_TravelAgency"), col("NbBookings").desc)
+	.filter(col("employeeRank").lt(4))
+	.drop("employeeRank").show(false)
+
+// 24.
+import org.apache.spark.sql.expressions.Window
+
+val windowTop = Window.partitionBy("DSC_TravelAgency").orderBy(count("PK_HotelBooking").desc)
+
+val windowBottom = Window.partitionBy("DSC_TravelAgency").orderBy(count("PK_HotelBooking"))
+
+dfDimHotelBooking
+	.groupBy("DSC_TravelAgency", "DSC_Employee")
+		.agg(
+			count("PK_HotelBooking").as("NbBookings"), 
+			rank().over(windowTop).as("topRank"), 
+			rank().over(windowBottom).as("bottomRank"))
+	.orderBy(col("DSC_TravelAgency"), col("NbBookings").desc)
+	.filter(col("topRank").leq(3) || col("bottomRank").leq(3))
+	.drop("topRank", "bottomRank").show(false)
+
+// 25.
+dfFactInsurance
+	.join(dfDimInsurance, "PK_Insurance")
+	.join(dfDimEmployee, col("FK_Employee") === col("PK_Employee"))
+	.filter(!upper(col("DSC_Type")).contains("STANDARD") && col("AMT_Travel_Insurance") =!= 0.0)
+	.groupBy("DSC_Employee")
+		.agg(round(sum(col("AMT_Travel_Insurance")), 2).as("Amt_Insurance"))
+	.orderBy(col("Amt_Insurance").desc).show
+
+// 26.
+dfDimEmployee.select(col("DSC_Employee"), col("DSC_JobTitle"), floor(months_between(current_date(), to_date(col("Contract_Date").cast(StringType), "yyyyMMdd")).divide(12)).as("Seniority")).orderBy(col("Seniority").desc).show
+
+// 27.
