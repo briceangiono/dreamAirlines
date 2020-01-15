@@ -7,12 +7,14 @@ val dfDimHotel = spark.read.option("inferSchema", true).option("header",true).cs
 val dfDimHotelBooking = spark.read.option("inferSchema", true).option("header",true).csv("./data/dreamAirlines_DW/dimHotelBooking.csv")
 val dfDimInsurance = spark.read.option("inferSchema", true).option("header",true).csv("./data/dreamAirlines_DW/dimInsurance.csv")
 val dfDimTravelBooking = spark.read.option("inferSchema", true).option("header",true).csv("./data/dreamAirlines_DW/dimTravelBooking.csv")
+val dfDimTravelAgency = spark.read.option("inferSchema", true).option("header",true).csv("./data/dreamAirlines_DW/dimTravelAgency.csv")
 val dfFactCarRenting = spark.read.option("inferSchema", true).option("header",true).csv("./data/dreamAirlines_DW/factCarRenting.csv")
 val dfFactHotelBooking = spark.read.option("inferSchema", true).option("header",true).csv("./data/dreamAirlines_DW/factHotelBooking.csv")
 val dfFactInsurance = spark.read.option("inferSchema", true).option("header",true).csv("./data/dreamAirlines_DW/factInsurance.csv")
+val dfFactTravelBooking = spark.read.option("inferSchema", true).option("header",true).csv("./data/dreamAirlines_DW/factTravelBooking.csv")
 
-val dreamAirlines = List( "dfDimCar","dfDimCarRenting","dfDimCustomer","dfDimDate","dfDimEmployee","dfDimHotel","dfDimHotelBooking","dfDimInsurance","dfDimTravelBooking","dfFactCarRenting","dfFactHotelBooking","dfFactInsurance")
+val dreamAirlines = List( "dfDimCar","dfDimCarRenting","dfDimCustomer","dfDimDate","dfDimEmployee","dfDimHotel","dfDimHotelBooking", "dfDimTravelAgency","dfDimInsurance","dfDimTravelBooking","dfFactCarRenting","dfFactHotelBooking","dfFactInsurance", "dfFactTravelBooking")
 
-print(dreamAirlines)
+println(dreamAirlines)
 
 
