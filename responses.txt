@@ -9,6 +9,39 @@ import org.apache.spark.sql.functions._
 2/	dfDimHotelBooking.select(col("Dsc_Employee")).distinct.sort(asc("Dsc_Employee")).show
 3/	dfDimCustomer.filter(col("Dsc_Customer").startsWith("A")).show(25)
 4/	dfDimTravelBooking.filter(!(col("Dsc_TravelDestiny").endsWith("a"))).distinct.show
-5/	
+5/	dfDimHotelBooking.withColumn("COD_TravelDestiny",upper(col("DSC_TravelDestiny").substr(0,2))).show
+6/	dfDimHotelBooking.filter($"DSC_TravelDestiny" === "Brazil").show
+7/	dfDimHotelBooking.select("DSC_Employee","DSC_TravelAgency").distinct.orderBy("DSC_TravelAgency").show
+8/	val date = dfDimEmployee.withColumn("Antiquity_Company", to_date(concat(col("Contract_Date")),"yyyyMMdd")).select("Antiquity_Company")
+	date.withColumn("Test",trunc(months_between(current_date,col("Antiquity_Company"))/12)).select("Test").show
+9/	dfDimEmployee.withColumn("_tmp", split($"DSC_Employee"," ")).select($"_tmp".getItem(0).as("First Name"),$"_tmp".getItem(1).as("Last Name")).drop("_tmp").show
+10/	dfDimHotel.withColumn("HotelName_Country", concat($"DSC_Hotel",lit("("),$"DSC_HotelCountry", lit(")"))).show
+11/	dfDimCustomer.select(to_timestamp((concat(col("Birthdate"))),"yyyyMMdd") as "Birthdate").show
+12/	val dfBd = dfDimCustomer.select(to_timestamp((concat(col("Birthdate"))),"yyyyMMdd") as "Birthdate")
+	val dfAge = dfBd.select(round(months_between(current_timestamp,col("Birthdate"))/12).alias("Age"))
+	
 
+
+
+
+
+15/	dfDimCarRenting.join(dfDimCar,dfDimCarRenting("FK_Car") === dfDimCar("PK_Car"), "right").select("PK_CarRenting","DSC_Car").filter("PK_CarRenting is null").show
+16/	dfDimEmployee.agg(max("Amt_Salary").alias("Highest_Salary")).show
+17/	dfDimEmployee.agg(min("Amt_Salary").alias("Lowest_Salary")).show
+
+22/	dfDimTravelBooking.groupBy("DSC_Employee").agg(sum("Load_ID").alias("NbTravelBooking")).orderBy(desc("NbTravelBooking")).limit(5).show
+23/
+val windowSpec = Window.partitionBy("DSC_TravelAgency").orderBy(count("PK_TravelBooking").desc)
+dfDimTravelBooking.groupBy("DSC_TravelAgency","DSC_Employee").agg(count("PK_TravelBooking").as("NbBookings"),rank().over(windowSpec).as("EmployeeRanking")).orderBy(col("DSC_TravelAgency"),col("NbBookings").desc).filter(col("EmployeeRanking").lt(4)).drop(col("EmployeeRanking")).show(false)
+24/	
+25/dfFactInsurance.join(dfDimEmployee, dfFactInsurance("FK_Employee") === dfDimEmployee("PK_Employee"),"full").join(dfDimInsurance, dfFactInsurance("PK_Insurance") === dfDimInsurance("PK_Insurance"),"full").filter(col("DSC_Insurance") =!= "Standard" && col("AMT_Travel_Insurance") =!= 0).groupBy("Dsc_Employee").agg(bround(sum(col("AMT_Travel_Insurance")),2).as("Amt_Insurance")).orderBy(desc("Amt_Insurance")).show()
+
+26/dfDimEmployee.withColumn("Senority", bround(months_between(current_date,to_date(concat(col("Contract_Date")),"yyyyMMdd"))/12,0)).select("DSC_Employee","DSC_JobTitle","Senority").orderBy(desc("Senority")).show
+
+27/
+
+
+
+
+dfDimCarRenting.join(dfDimCar,dfDimCarRenting("FK_Car") === dfDimCar("PK_Car"), "right").select("PK_CarRenting","DSC_Car").filter("PK_CarRenting is null").show
 
