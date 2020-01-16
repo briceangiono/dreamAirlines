@@ -176,6 +176,114 @@ dfFactInsurance
 	.orderBy(col("Amt_Insurance").desc).show
 
 // 26.
-dfDimEmployee.select(col("DSC_Employee"), col("DSC_JobTitle"), floor(months_between(current_date(), to_date(col("Contract_Date").cast(StringType), "yyyyMMdd")).divide(12)).as("Seniority")).orderBy(col("Seniority").desc).show
+dfDimEmployee
+	.select(col("DSC_Employee"), col("DSC_JobTitle"), floor(months_between(current_date(), to_date(col("Contract_Date").cast(StringType), "yyyyMMdd")).divide(12)).as("Seniority"))
+	.orderBy(col("Seniority").desc).show
 
 // 27.
+dfFactTravelBooking
+	.withColumn("Year", year(to_date(col("FK_Date").cast(StringType), "yyyyMMdd")))
+	.withColumn("Month", month(to_date(col("FK_Date").cast(StringType), "yyyyMMdd")))
+	.groupBy("Year", "Month")
+		.agg(sum("AMT_Travel").as("AMT_Travel"))
+	.orderBy(col("Year"), col("Month")).show
+
+// 28.
+dfDimEmployee
+	.join(dfFactTravelBooking, col("FK_Employee") === col("PK_Employee"))
+	.withColumn("Year", year(to_date(col("FK_date").cast(StringType), "yyyyMMdd")))
+	.filter(col("Year") === lit(2016))
+	.groupBy("DSC_Employee", "Year")
+		.agg(round(avg("AMT_Travel"), 2).as("AVG_Amt_Travel"))
+	.orderBy(col("AVG_Amt_Travel").desc).show
+
+// 29.
+dfFactTravelBooking
+	.groupBy("FK_Employee")
+		.agg(sum("AMT_Travel").as("SUM_Amt_Travel"))
+	.join(dfDimEmployee, col("FK_Employee") === col("PK_Employee"))
+	.withColumn("Total", sum(col("SUM_Amt_Travel")).over())
+	.where(floor(months_between(current_date(), to_date(col("Contract_Date").cast(StringType), "yyyyMMdd")).divide(12)).gt(5))
+	.withColumn("PercentTotal", round(col("SUM_Amt_Travel") / col("Total") * 100, 2))
+	.select("DSC_Employee", "PercentTotal")
+	.orderBy(col("PercentTotal").desc).show
+
+// 30.
+dfDimCar.withColumn("DSC_Color", lit(null)).show
+
+// 31.
+val dfCarColors = List(
+   ("Nissan Micra 1.0" ,"White"),
+   ("Volkswagen UP 1.0", "Black"),
+   ("Peugeot 108 1.0", "White"),
+   ("Smart Forfour 1.1", "Black"),
+   ("Renault Twingo 1.2", "White"),
+   ("Volkswagen Polo 1.2", "Black"),
+   ("Opel Adam 1.4 D", "White"),
+   ("Opel Corsa 1.4 D", "Black"),
+   ("Seat Ibiza 1.4 TDI", "Red"),
+   ("Renault Clio 1.5 DCI", "Black"),
+   ("Ford Fiesta 1.5", "White"),
+   ("Audi A3 1.6", "Black"),
+   ("BMW 116i 1.6", "Red"),
+   ("Mercedes Benz C Class 1.5", "White"),
+   ("Volkswagen Passat 2.0", "Grey"),
+   ("BMW 320i Sport 2.0 Turbo", "Blue"),
+   ("Mercedes-Benz CLS 500 5.0", "White"),
+   ("Ford Mustang GT", "Green"),
+   ("Ferrari 488 GTB", "Red"),
+   ("Lamborghini Aventador", "Black"),
+   ("Renault 5 GT Turbo", "Yellow"),
+   ("Opel Corsa A 1.5 D", "Red"),
+   ("Volkswagen Lupo 1.0", "Green"),
+   ("Fiat Panda 1.2", "Grey"),
+   ("Skoda Fabia 1.6", "Blue")
+).toDF("DSC_Car","DSC_CarColor")
+
+dfDimCar.join(dfCarColors, Seq("DSC_Car"), "left").show
+
+// 32.
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions.monotonically_increasing_id
+
+val motoSchema = StructType(
+	StructField("PK_Moto", IntegerType, false),
+	StructField("DSC_RentalCompany", StringType, true),
+	StructField("DSC_Moto", StringType, true),
+	StructField("Load_ID", IntegerType, true),
+	StructField("HashColumn", StringType, true),
+	StructField("Insert_Date", DateType, true),
+	StructField("Update_Date", DateType, true)
+)
+
+val dfMotos = List(("GlobalMotors", "Harley-Davidson Street 500"),("GlobalMotors", "Harley-Davidson Street 700"),("GlobalMotors", "Harley-Davidson Sportster Iron 883"),("GlobalMotors", "Harley-Davidson V-Rod Night"),("GlobalMotors", "Harley-Davidson Dyna Fat Bob")).toDF("DSC_RentalCompany", "DSC_Moto")
+
+val reorderedColumnNames = List("PK_Moto", "DSC_RentalCompany", "DSC_Moto", "Load_ID", "HashColumn", "Insert_Date", "Update_Date")
+
+val dfDimMoto = dfMotos
+					.withColumn("PK_Moto", row_number().over(Window.orderBy(monotonically_increasing_id())))
+					.withColumn("Load_ID", lit(1)).withColumn("HashColumn", lit(null)).withColumn("Insert_Date", current_date())
+					.withColumn("Update_Date", current_date())
+					.select(reorderedColumnNames.head, reorderedColumnNames.tail: _*)
+
+// The monotonically_increasing_id() isn't necessary
+val dfDimMotoBis = dfMotos
+					.withColumn("PK_Moto", row_number().over(Window.orderBy(lit(1)))).withColumn("Load_ID", lit(1))
+					.withColumn("HashColumn", lit(null)).withColumn("Insert_Date", current_date())
+					.withColumn("Update_Date", current_date())
+					.select(reorderedColumnNames.head, reorderedColumnNames.tail: _*)
+
+
+// 33.
+import org.apache.spark.sql.types._
+
+val maxPk = dfDimCar.agg(max("PK_Car").as("maxPk")).first.getInt(0)
+
+val dfDimMoto = dfDimMoto.withColumn("PK_Moto", col("PK_Moto") + maxPk)
+
+val dfDimVehicule = dfDimCar
+						.union(dfDimMoto)
+						.withColumnRenamed("PK_Car", "PK_Vehicule")
+						.withColumnRenamed("DSC_Car", "DSC_Vehicule")
+
+dfDimVehicule.coalesce(1).write.format("csv").option("header", "true").save("./data/dreamAirlines_DW/dfDimVehicule")
